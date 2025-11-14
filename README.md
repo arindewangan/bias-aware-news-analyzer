@@ -112,17 +112,15 @@ Note: The `services` package uses Python’s implicit namespace packages; `__ini
 ```mermaid
 flowchart TD
   A[Browser UI<br/>templates/index.html] -->|HTTP POST/GET| B[Flask App<br/>app.py]
-  B -->|Fetch news| C[NewsAPI
-  services/news_fetcher.py]
-  B -->|LLM calls| D[Gemini or Ollama
-  services/llm.py]
-  B -->|RAG query/store| E[Chroma Vector DB
-  services/rag.py]
-  B -->|Persist metrics| F[SQLite
-  db.sqlite]
+  B -->|Fetch news| C[NewsAPI<br/>services/news_fetcher.py]
+  B -->|LLM calls| D[Gemini or Ollama<br/>services/llm.py]
+  B -->|RAG query/store| E[Chroma Vector DB<br/>services/rag.py]
+  B -->|Persist metrics| F[SQLite<br/>db.sqlite]
   B -->|Render| A
   B -->|SSE streams| A
-  subgraph Async Jobs
+
+  subgraph AsyncJobs
+    direction TB
     J1[summarize_all_async]
     J2[summary_bias_async]
     J3[unbiased_topic_summary_async]
@@ -130,7 +128,13 @@ flowchart TD
     J5[article_bias_async]
     J6[unbiased_summary_async]
   end
-  B -->|Start jobs| Async Jobs
+
+  B --> J1
+  B --> J2
+  B --> J3
+  B --> J4
+  B --> J5
+  B --> J6
 ```
 
 ## Troubleshooting
