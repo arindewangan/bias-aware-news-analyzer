@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Metrics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="border-b bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <h1 class="text-2xl md:text-3xl font-semibold">Evaluation Metrics</h1>
+      <a href="/" class="text-blue-600 hover:underline">Back to Home</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <section class="bg-white shadow-sm rounded-xl p-6">
+      <h2 class="text-xl font-semibold mb-4">Overview</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Summarize All</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_summaries_all }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Article Summaries</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_article_summaries }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Topic Bias Analyses</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_bias_topic }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Article Bias Analyses</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_bias_article }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Unbiased Topic Summaries</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_unbiased_topic }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Unbiased Article Summaries</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_unbiased_article }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Global Questions</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_global_questions }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Article Questions</div>
+          <div class="text-2xl font-semibold">{{ metrics.num_article_questions }}</div>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Avg Answer Latency (ms)</div>
+          <div class="text-2xl font-semibold">{{ '%.1f' % avg_latency }}</div>
+        </div>
+        <div class="p-4 rounded-lg bg-gray-100">
+          <div class="text-sm text-gray-600">Avg Answer Words</div>
+          <div class="text-2xl font-semibold">{{ '%.1f' % avg_words }}</div>
+        </div>
+      </div>
+
+      <div class="mt-8">
+        <h2 class="text-xl font-semibold mb-3">Examples</h2>
+        <div class="space-y-3">
+          {% for ex in metrics.examples %}
+          <div class="p-4 rounded-lg border bg-white">
+            <div class="text-sm text-gray-600">Type: {{ ex.type }}{% if ex.index is not none %} #{{ ex.index }}{% endif %}</div>
+            <div class="mt-1 text-gray-800">Question: {{ ex.question }}</div>
+            <div class="mt-1 text-sm text-gray-600">Answer words: {{ ex.answer_words }} • Latency: {{ '%.1f' % ex.latency_ms }} ms</div>
+          </div>
+          {% endfor %}
+          {% if not metrics.examples %}
+          <div class="text-gray-600">No examples yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

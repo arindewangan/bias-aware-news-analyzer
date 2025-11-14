@@ -1,0 +1,346 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bias-Aware News Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="icon" href="data:,">
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <script>
+    function setScope(i,val){ const el=document.querySelector(`#scope_${i}`); if(el){ el.value=val; } }
+    function attachLoading(){}
+    function safeMarkdown(s){ try{ return marked.parse((s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')); }catch(e){ return (s||''); } }
+    function renderInitialMarkdown(){
+      document.querySelectorAll('[data-markdown]').forEach(el=>{ const raw = el.textContent || ''; el.innerHTML = safeMarkdown(raw); });
+    }
+    function streamGlobal(question, btn){
+      const ans = document.getElementById('global_answer');
+      if(ans){ ans.textContent=''; }
+      if(btn){ btn.disabled=true; btn.dataset.originalText=btn.textContent; btn.innerHTML='<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>'+(btn.dataset.loadingText||'Answering...'); }
+      let gotChunk=false;
+      const es = new EventSource(`/ask_global_stream?q=${encodeURIComponent(question)}`);
+      es.onmessage = (e)=>{ gotChunk=true; if(ans){ ans.dataset.mdAccum = (ans.dataset.mdAccum||'') + e.data; ans.innerHTML = safeMarkdown(ans.dataset.mdAccum); } };
+      es.onerror = ()=>{ es.close(); if(btn){ btn.disabled=false; btn.textContent=btn.dataset.originalText||'Ask'; } if(!gotChunk){ const f=new FormData(); f.append('question', question); fetch('/ask_global', { method:'POST', body:f }).then(()=>{ window.location.href='/?'; }); } };
+    }
+    function streamArticle(index, question, btn){
+      const ans = document.getElementById(`answer_${index}`);
+      if(ans){ ans.textContent=''; }
+      if(btn){ btn.disabled=true; btn.dataset.originalText=btn.textContent; btn.innerHTML='<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>'+(btn.dataset.loadingText||'Answering...'); }
+      let gotChunk=false;
+      const es = new EventSource(`/ask_article_stream/${index}?q=${encodeURIComponent(question)}`);
+      es.onmessage = (e)=>{ gotChunk=true; if(ans){ ans.dataset.mdAccum = (ans.dataset.mdAccum||'') + e.data; ans.innerHTML = safeMarkdown(ans.dataset.mdAccum); } };
+      es.onerror = ()=>{ es.close(); if(btn){ btn.disabled=false; btn.textContent=btn.dataset.originalText||'Ask'; } if(!gotChunk){ const f=new FormData(); f.append('question', question); fetch('/ask_article/'+index, { method:'POST', body:f }).then(()=>{ window.location.href='/?'; }); } };
+    }
+    function bindStreaming(){
+      const gform = document.querySelector('form[action="/ask_global"]');
+      if(gform){
+        gform.addEventListener('submit', (ev)=>{
+          ev.preventDefault();
+          ev.stopPropagation();
+          const input = gform.querySelector('input[name="question"]');
+          const btn = gform.querySelector('button[type="submit"]');
+          const q = input ? input.value : '';
+          if(q){ streamGlobal(q, btn); }
+        });
+      }
+      document.querySelectorAll('form[action^="/ask_article/"]').forEach(f=>{
+        f.addEventListener('submit', (ev)=>{
+          ev.preventDefault();
+          ev.stopPropagation();
+          const action = f.getAttribute('action') || '';
+          const m = action.match(/\/ask_article\/(\d+)/);
+          const i = m ? parseInt(m[1],10) : null;
+          const input = f.querySelector('input[name="question"]');
+          const btn = f.querySelector('button[type="submit"]');
+          const q = input ? input.value : '';
+          if(q && i !== null){ streamArticle(i, q, btn); }
+        });
+      });
+    }
+    function startJob(kind, index, btn, evt){
+      try{ if(evt){ evt.stopPropagation(); } }catch(e){}
+      if(btn){
+        btn.disabled = true;
+        btn.dataset.originalText = btn.textContent;
+        btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Processing...');
+      }
+      let url = '/summarize_all_async';
+      if(kind==='summary_bias'){ url = '/summary_bias_async'; }
+      else if(kind==='unbiased_topic_summary'){ url = '/unbiased_topic_summary_async'; }
+      else if(kind==='summarize_article'){ url = '/summarize_article_async/'+index; }
+      else if(kind==='article_bias'){ url = '/article_bias_async/'+index; }
+      else if(kind==='unbiased_summary'){ url = '/unbiased_summary_async/'+index; }
+      fetch(url, { method:'POST' })
+        .then(r=>r.text())
+        .then(t=>{ let d={}; try{ d=JSON.parse(t); }catch(e){}; const jid=d.job_id; if(!jid){ if(btn){ btn.textContent='Error'; btn.disabled=false; } return; } pollJob(jid, btn); })
+        .catch(()=>{ if(btn){ btn.textContent='Error'; btn.disabled=false; } });
+    }
+    function pollJob(jid, btn){
+      function tick(){
+        fetch('/job/'+jid)
+          .then(r=>r.text())
+          .then(t=>{ let d={}; try{ d=JSON.parse(t); }catch(e){}; const s=d.status; if(s==='running'){ if(btn){ btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Running...'); } setTimeout(tick, 800); } else if(s==='done'){ if(btn){ btn.disabled=false; btn.textContent = btn.dataset.originalText || 'Done'; } const tok=d.token; if(tok){ window.location.href='/?token='+encodeURIComponent(tok); } else { window.location.href='/?'; } } else if(s==='error'){ if(btn){ btn.disabled=false; btn.textContent='Error'; } } else { if(btn){ btn.textContent = btn.dataset.originalText || 'Unknown'; } setTimeout(tick, 1200); } })
+          .catch(()=>{ if(btn){ btn.disabled=false; btn.textContent='Error'; } });
+      }
+      tick();
+    }
+    function clearOnReload(){
+      try{
+        const nav = performance.getEntriesByType('navigation')[0];
+        if(nav && nav.type==='reload'){
+          document.querySelectorAll('[data-summary-section]').forEach(n=>{ n.innerHTML=''; });
+          document.querySelectorAll('[id^="answer_"]').forEach(n=>{ n.textContent=''; });
+          const gAns = document.getElementById('global_answer');
+          if(gAns){ gAns.textContent=''; }
+        }
+      }catch(e){}
+    }
+    function initSearchPersistence(){
+      const topicInput = document.querySelector('input[name="topic"]');
+      const catSelect = document.querySelector('select[name="category"]');
+      const savedTopic = localStorage.getItem('search_topic');
+      const savedCat = localStorage.getItem('search_category');
+      if(topicInput && savedTopic){ topicInput.value = savedTopic; }
+      if(catSelect && savedCat){ catSelect.value = savedCat; }
+      if(topicInput){ topicInput.addEventListener('input', ()=>{ localStorage.setItem('search_topic', topicInput.value || ''); }); }
+      if(catSelect){ catSelect.addEventListener('change', ()=>{ localStorage.setItem('search_category', catSelect.value || ''); }); }
+    }
+    function initRecentSearches(){
+      const topicInput = document.querySelector('input[name="topic"]');
+      const dropdown = document.getElementById('recent_dropdown');
+      const btnClear = document.getElementById('search_clear');
+      const recKey='recent_searches';
+      const rec = JSON.parse(localStorage.getItem(recKey)||'[]');
+      function render(){ if(!dropdown) return; dropdown.innerHTML=''; rec.slice(-5).reverse().forEach(r=>{ const li=document.createElement('div'); li.className='px-3 py-2 hover:bg-gray-100 cursor-pointer'; li.textContent=r; li.onclick=()=>{ if(topicInput){ topicInput.value=r; } dropdown.classList.add('hidden'); }; dropdown.appendChild(li); }); }
+      function showRecent(){ render(); if(dropdown){ dropdown.classList.remove('hidden'); } }
+      function hideRecent(){ if(dropdown){ dropdown.classList.add('hidden'); } }
+      if(topicInput){
+        topicInput.addEventListener('focus', ()=>{ const v=(topicInput.value||'').trim(); if(!v){ showRecent(); } else { hideRecent(); } });
+        topicInput.addEventListener('input', ()=>{ const v=(topicInput.value||'').trim(); if(!v){ showRecent(); } else { hideRecent(); } });
+        topicInput.addEventListener('blur', ()=>{ setTimeout(hideRecent, 100); const v=(topicInput.value||'').trim(); if(!v) return; const n=[...rec.filter(x=>x!==v), v]; localStorage.setItem(recKey, JSON.stringify(n.slice(-20))); });
+      }
+      document.addEventListener('click', (e)=>{ const container = topicInput ? topicInput.parentElement : null; if(container && !container.contains(e.target)){ hideRecent(); } });
+      if(btnClear){ btnClear.addEventListener('click', ()=>{ if(topicInput){ topicInput.value=''; localStorage.setItem('search_topic',''); } }); }
+    }
+    function initTypeahead(){
+      const topicInput = document.querySelector('input[name="topic"]');
+      const dd = document.getElementById('suggest_dropdown');
+      const status = document.getElementById('search_status');
+      let timer=null;
+      function debounced(){ if(timer){ clearTimeout(timer); } timer=setTimeout(async()=>{ const q=(topicInput.value||'').trim(); if(!q){ if(dd){ dd.classList.add('hidden'); dd.innerHTML=''; } if(status){ status.textContent=''; } return; } if(status){ status.textContent='Searching...'; }
+        try{ const r = await fetch('/suggest?q='+encodeURIComponent(q)); const t = await r.text(); let d={}; try{ d=JSON.parse(t); }catch(e){}; const arr=d.suggestions||[]; if(dd){ dd.innerHTML=''; arr.forEach(s=>{ const li=document.createElement('div'); li.className='px-3 py-2 hover:bg-gray-100 cursor-pointer'; li.textContent=s; li.onclick=()=>{ topicInput.value=s; dd.classList.add('hidden'); }; dd.appendChild(li); }); const focused = document.activeElement === topicInput; dd.classList.toggle('hidden', arr.length===0 || !focused); } } catch(e){} finally{ if(status){ status.textContent=''; } } }, 300); }
+      if(topicInput){ topicInput.addEventListener('input', debounced); topicInput.addEventListener('focus', debounced); topicInput.addEventListener('blur', ()=>{ if(dd){ dd.classList.add('hidden'); } }); }
+      document.addEventListener('click', (e)=>{ const container = topicInput ? topicInput.parentElement : null; if(container && !container.contains(e.target)){ if(dd){ dd.classList.add('hidden'); } } });
+    }
+    function initOnboarding(){
+      const seen = localStorage.getItem('onboarding_seen');
+      const banner = document.getElementById('onboarding');
+      if(banner){ banner.classList.toggle('hidden', !!seen); const close=document.getElementById('onboarding_close'); if(close){ close.onclick=()=>{ localStorage.setItem('onboarding_seen','1'); banner.classList.add('hidden'); }; } }
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{ attachLoading(); bindStreaming(); clearOnReload(); initSearchPersistence(); initRecentSearches(); initTypeahead(); initOnboarding(); renderInitialMarkdown(); });
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  
+
+  <header class="border-b bg-white">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <h1 class="text-2xl md:text-3xl font-semibold">Bias-Aware News Analyzer</h1>
+      <div class="text-sm text-gray-500">LLM-powered summaries, bias checks, and Q&A</div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    {% if error_message %}
+    <div class="mb-4 p-3 rounded-lg bg-amber-100 text-amber-900 border border-amber-300">{{ error_message }}</div>
+    {% endif %}
+    <section class="bg-white shadow-sm rounded-xl p-4 md:p-6">
+      <div class="flex flex-col md:flex-row gap-3 md:gap-4 md:items-end">
+        <form method="post" action="/fetch" class="flex-1 flex gap-3">
+          <div class="relative flex-1">
+            <input title="Type a topic to search" type="text" name="topic" placeholder="Russia Ukraine War" value="{{ topic or '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8" />
+            <button type="button" id="search_clear" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">×</button>
+            <div id="search_status" class="absolute left-2 -bottom-5 text-xs text-gray-500"></div>
+            <div id="suggest_dropdown" class="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-sm hidden"></div>
+            <div id="recent_dropdown" class="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-sm hidden"></div>
+          </div>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" title="Fetch articles">Search News</button>
+        </form>
+        <form method="post" action="/fetch_category" class="flex gap-3">
+          <select name="category" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" title="Select a category">
+            {% for c in categories %}
+            <option value="{{c}}" {% if selected_category==c %}selected{% endif %}>{{c}}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900" title="Filter by category">Filter</button>
+        </form>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" onclick="startJob('summarize_all', null, this, event)" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" data-loading-text="Summarizing...">Summarize All Articles</button>
+      </div>
+
+      {% if summary_visible %}
+      <div class="mt-6">
+        <h3 class="text-xl font-semibold mb-2">Topic Summary</h3>
+        <div class="prose max-w-none" data-summary-section data-markdown>{{ summary_all }}</div>
+        <div class="mt-3 flex gap-3 flex-wrap">
+          <button type="button" onclick="startJob('summary_bias', null, this, event)" class="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700" data-loading-text="Analyzing...">Analyze Bias</button>
+          <form method="post" action="/ask_global" class="flex gap-3 min-w-[320px]">
+            <input type="text" name="question" placeholder="Ask a follow-up question" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Ask</button>
+          </form>
+        </div>
+        <div class="mt-3">
+          <h3 class="text-lg font-semibold mb-1">Answer</h3>
+          <div id="global_answer" class="prose max-w-none" data-markdown>{% if answers.global %}{{ answers.global }}{% endif %}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if bias_summary.analysis %}
+      <div class="mt-6">
+        <h3 class="text-xl font-semibold mb-2">Topic Bias Analysis</h3>
+        <div class="prose max-w-none" data-markdown>{{ bias_summary.analysis }}</div>
+        {% if bias_summary.score and bias_summary.score.score is not none %}
+        {% set b = bias_summary.score.score %}
+        {% set color = 'bg-green-600' if b<=30 else ('bg-yellow-500' if b<=70 else 'bg-red-600') %}
+        {% set icon = '✓' if b<=30 else ('!' if b<=70 else '⚠') %}
+        <div class="mt-3">
+          <div class="flex items-center gap-2 text-sm">
+            <div class="text-xl">{{ icon }}</div>
+            <div class="font-medium">Bias level: {{ b }}%</div>
+          </div>
+          <div class="mt-2 w-full h-4 rounded-full bg-gray-200 overflow-hidden">
+            <div class="h-4 {{ color }}" style="width: {{ b }}%;"></div>
+          </div>
+        </div>
+        {% endif %}
+        <div class="mt-3">
+          <button type="button" onclick="startJob('unbiased_topic_summary', null, this, event)" class="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800" data-loading-text="Rewriting...">Unbiased Summary</button>
+        </div>
+      </div>
+      {% endif %}
+      {% if unbiased_topic_summary %}
+      <div class="mt-6">
+        <h3 class="text-xl font-semibold mb-2">Unbiased Topic Summary</h3>
+        <div class="prose max-w-none">{{ unbiased_topic_summary }}</div>
+      </div>
+      {% endif %}
+
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-2xl font-semibold mb-4">Articles</h2>
+      {% if articles|length == 0 %}
+      <div class="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
+        No articles matched your search. Try a different topic or category.
+        <div class="mt-3 flex gap-2">
+          <form method="post" action="/fetch"><input type="hidden" name="topic" value="{{ topic or '' }}" /><button class="px-3 py-1.5 bg-blue-600 text-white rounded">Retry Search</button></form>
+          <form method="post" action="/fetch_category"><input type="hidden" name="category" value="{{ selected_category or 'Trending' }}" /><button class="px-3 py-1.5 bg-slate-700 text-white rounded">Retry Category</button></form>
+        </div>
+      </div>
+      {% endif %}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {% for a in articles %}
+        <div class="group bg-white shadow-sm rounded-xl p-5 flex flex-col transition transform hover:-translate-y-0.5 hover:shadow-md {{ 'col-span-full' if expanded_article == loop.index0 else '' }}">
+          {% if a.urlToImage %}
+          <a href="{{ a.url or '#' }}" target="_blank" rel="noopener noreferrer nofollow">
+            <img src="{{ a.urlToImage }}" alt="Thumbnail" class="w-full h-48 object-cover rounded-lg" />
+          </a>
+          {% endif %}
+          <div class="font-semibold text-lg">
+            {% if a.url %}
+              <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer nofollow" class="hover:underline">{{ a.title or 'No Title' }}</a>
+            {% else %}
+              {{ a.title or 'No Title' }}
+            {% endif %}
+          </div>
+          <div class="text-sm text-gray-500 mt-1">Source: {{ a.source.name if a.source else 'N/A' }} • Published: {{ a.publishedAt or 'N/A' }}</div>
+          <div class="mt-2 text-gray-700">
+            {% if a.url %}
+              <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer nofollow" class="hover:underline">{{ a.description or '' }}</a>
+            {% else %}
+              {{ a.description or '' }}
+            {% endif %}
+          </div>
+
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" onclick="startJob('summarize_article', {{ loop.index0 }}, this, event)" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700" data-loading-text="Summarizing...">Summarize</button>
+            <button type="button" onclick="startJob('article_bias', {{ loop.index0 }}, this, event)" class="px-3 py-1.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700" data-loading-text="Analyzing...">Analyze Bias</button>
+          </div>
+
+          {% if summaries[loop.index0] %}
+          <div class="mt-4">
+            <h4 class="font-semibold mb-1">Summary</h4>
+            <div class="text-gray-700" data-summary-section data-markdown>{{ summaries[loop.index0] }}</div>
+          </div>
+          {% endif %}
+
+          
+
+          {% if bias[loop.index0] %}
+          <div class="mt-3">
+            <h4 class="font-semibold mb-1">Bias Analysis</h4>
+            <div class="text-gray-700" data-markdown>{{ bias[loop.index0].analysis }}</div>
+            {% if bias[loop.index0].score and bias[loop.index0].score.score is not none %}
+            <div class="mt-2">
+              <div class="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                <div class="h-2 bg-red-500" style="width: {{ bias[loop.index0].score.score }}%;"></div>
+              </div>
+              <div class="text-sm text-gray-600 mt-1">Approximate bias: {{ bias[loop.index0].score.score }}%</div>
+            </div>
+            {% endif %}
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button type="button" onclick="startJob('unbiased_summary', {{ loop.index0 }}, this, event)" class="px-3 py-1.5 bg-slate-700 text-white rounded-lg hover:bg-slate-800" data-loading-text="Rewriting...">Unbiased Summary</button>
+          </div>
+          {% endif %}
+
+          {# Unbiased Version display removed as per request #}
+          {% if unbiased_summary[loop.index0] %}
+          <div class="mt-3">
+            <h4 class="font-semibold mb-1">Unbiased Summary</h4>
+            <div class="text-gray-700" data-markdown>{{ unbiased_summary[loop.index0] }}</div>
+          </div>
+          {% endif %}
+
+          {% if summaries[loop.index0] or unbiased_summary[loop.index0] %}
+          <div class="mt-3">
+            <form method="post" action="/ask_article/{{ loop.index0 }}" class="flex gap-2">
+              <input type="text" name="question" placeholder="Ask a question" class="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <button type="submit" class="px-3 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Ask</button>
+            </form>
+          </div>
+          <div class="mt-3">
+            <h4 class="font-semibold mb-1">Answer</h4>
+            <div id="answer_{{ loop.index0 }}" class="text-gray-700 prose max-w-none" data-markdown>{% if answers[loop.index0] %}{{ answers[loop.index0] }}{% endif %}</div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% if articles|length > 9 %}
+      <div class="mt-6 flex justify-center"><button id="load_more" class="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900">Load More</button></div>
+      <script>
+        (function(){
+          const grid = document.querySelector('.grid');
+          if(!grid) return;
+          const cards = Array.from(grid.children);
+          let shown = 9;
+          function update(){ cards.forEach((c,i)=>{ c.classList.toggle('hidden', i>=shown); }); }
+          update();
+          const btn = document.getElementById('load_more');
+          if(btn){ btn.onclick = ()=>{ shown += 9; update(); if(shown >= cards.length){ btn.classList.add('hidden'); } };
+            const io = new IntersectionObserver(entries=>{ entries.forEach(e=>{ if(e.isIntersecting){ shown += 9; update(); if(shown >= cards.length){ btn.classList.add('hidden'); io.disconnect(); } } }); }); io.observe(btn);
+          }
+        })();
+      </script>
+      {% endif %}
+    </section>
+  </main>
+
+</body>
+</html>
