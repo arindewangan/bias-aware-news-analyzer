@@ -30,6 +30,7 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 
 ## Features
 
+- **Modern UI**: Premium design with Glassmorphism, Tailwind CSS, and 'Outfit' typography.
 - Topic fetch via search or category
 - Summarize all articles under a topic
 - Topic bias analysis with score visualization
@@ -68,13 +69,13 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 
 ## UI Behavior
 
-- Ask form appears below the topic summary after clicking `Summarize All Articles`.
-- Clicking article title/description opens the original link in a new tab (`nofollow`).
-- Thumbnails render above titles when available.
-- When an article action (summarize/analyze bias) is triggered, that article expands to full width.
-- Search input shows placeholder `Russia Ukraine War` with empty value.
-- Streaming Q&A intercepts Ask submissions and shows partial output progressively.
-- Async job buttons for topic summarization and topic bias analysis show status and reload on completion.
+- **Hero Search**: A prominent, centered search section with a gradient background.
+- **Glassmorphism Header**: Sticky header with a blur effect for a modern feel.
+- **Interactive Cards**: Articles and summaries are displayed in cards with hover lift effects and soft shadows.
+- **Bias Visualization**: Bias scores are shown with animated progress bars and color-coded indicators (Green/Yellow/Red).
+- **Responsive Design**: Fully responsive layout that adapts to mobile and desktop screens.
+- **Streaming Q&A**: Answers stream in real-time with a typewriter effect.
+- **Async Jobs**: Long-running tasks (summarization, bias check) run in the background with status indicators.
 
 ## RAG & LLM
 
@@ -93,8 +94,8 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 ## Project Structure
 
 - `app.py` — Flask routes, in‑memory state, caching, metrics, SSE, jobs
-- `templates/index.html` — Main UI
-- `templates/metrics.html` — Metrics UI
+- `templates/index.html` — Main UI (Modernized with Tailwind CSS)
+- `templates/metrics.html` — Metrics UI (Modernized with Tailwind CSS)
 - `services/news_fetcher.py` — NewsAPI integration
 - `services/llm.py` — Gemini/Ollama calls
 - `services/rag.py` — Chroma CRUD & embeddings
