@@ -117,6 +117,17 @@
                 }}</span>
             </div>
           </div>
+
+          <!-- Card -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div class="text-sm font-medium text-slate-500 mb-1">Total Tokens</div>
+            <div class="text-3xl font-bold text-slate-900">{{ metrics.total_tokens }}</div>
+            <div class="mt-2 text-xs text-slate-400 flex gap-2">
+              <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-600">Prompt: {{ metrics.prompt_tokens }}</span>
+              <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-600">Compl: {{ metrics.completion_tokens
+                }}</span>
+            </div>
+          </div>
         </div>
 
         <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -146,6 +157,7 @@
                   <th class="px-6 py-4 font-semibold text-slate-700">Type</th>
                   <th class="px-6 py-4 font-semibold text-slate-700">Question / Action</th>
                   <th class="px-6 py-4 font-semibold text-slate-700">Stats</th>
+                  <th class="px-6 py-4 font-semibold text-slate-700">Tokens</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -165,6 +177,9 @@
                   <td class="px-6 py-4 text-slate-500">
                     <div>{{ ex.answer_words }} words</div>
                     <div class="text-xs text-slate-400">{{ '%.1f' % ex.latency_ms }} ms</div>
+                  </td>
+                  <td class="px-6 py-4 text-slate-500 font-mono text-xs">
+                    {{ ex.tokens }}
                   </td>
                 </tr>
                 {% endfor %}

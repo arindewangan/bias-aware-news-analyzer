@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,159 +28,304 @@
     }
   </script>
   <style>
-    body { font-family: 'Outfit', sans-serif; }
-    .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.3); }
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
-    .prose h1, .prose h2, .prose h3 { color: #1e293b; font-weight: 600; }
-    .prose p { color: #475569; line-height: 1.7; }
-    .prose strong { color: #0f172a; font-weight: 600; }
+    body {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    .prose h1,
+    .prose h2,
+    .prose h3 {
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .prose p {
+      color: #475569;
+      line-height: 1.7;
+    }
+
+    .prose strong {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
     /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #f1f5f9; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
   </style>
   <script>
-    function setScope(i,val){ const el=document.querySelector(`#scope_${i}`); if(el){ el.value=val; } }
-    function attachLoading(){}
-    function safeMarkdown(s){ try{ return marked.parse((s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')); }catch(e){ return (s||''); } }
-    function renderInitialMarkdown(){
-      document.querySelectorAll('[data-markdown]').forEach(el=>{ const raw = el.textContent || ''; el.innerHTML = safeMarkdown(raw); });
+    function setScope(i, val) { const el = document.querySelector(`#scope_${i}`); if (el) { el.value = val; } }
+    function closeCard(btn) {
+      const section = btn.closest('.animate-fade-in');
+      if (section) {
+        section.classList.add('hidden');
+        // Check if parent card has any other visible sections
+        const card = section.closest('.group');
+        if (card) {
+          const visibleSections = card.querySelectorAll('.animate-fade-in:not(.hidden)');
+          if (visibleSections.length === 0) {
+            card.classList.remove('col-span-full', 'ring-2', 'ring-primary-500/20');
+          }
+        }
+      }
     }
-    function streamGlobal(question, btn){
+    function attachLoading() { }
+    function safeMarkdown(s) { try { return marked.parse((s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')); } catch (e) { return (s || ''); } }
+    function renderInitialMarkdown() {
+      document.querySelectorAll('[data-markdown]').forEach(el => { const raw = el.textContent || ''; el.innerHTML = safeMarkdown(raw); });
+    }
+    function streamGlobal(question, btn) {
       const ans = document.getElementById('global_answer');
-      if(ans){ ans.textContent=''; }
-      if(btn){ btn.disabled=true; btn.dataset.originalText=btn.textContent; btn.innerHTML='<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>'+(btn.dataset.loadingText||'Answering...'); }
-      let gotChunk=false;
+      if (ans) { ans.textContent = ''; }
+      if (btn) { btn.disabled = true; btn.dataset.originalText = btn.textContent; btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Answering...'); }
+      let gotChunk = false;
       const es = new EventSource(`/ask_global_stream?q=${encodeURIComponent(question)}`);
-      es.onmessage = (e)=>{ gotChunk=true; if(ans){ ans.dataset.mdAccum = (ans.dataset.mdAccum||'') + e.data; ans.innerHTML = safeMarkdown(ans.dataset.mdAccum); } };
-      es.onerror = ()=>{ es.close(); if(btn){ btn.disabled=false; btn.textContent=btn.dataset.originalText||'Ask'; } if(!gotChunk){ const f=new FormData(); f.append('question', question); fetch('/ask_global', { method:'POST', body:f }).then(()=>{ window.location.href='/?'; }); } };
+      es.onmessage = (e) => { gotChunk = true; if (ans) { ans.dataset.mdAccum = (ans.dataset.mdAccum || '') + e.data; ans.innerHTML = safeMarkdown(ans.dataset.mdAccum); } };
+      es.onerror = () => { es.close(); if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Ask'; } if (!gotChunk) { const f = new FormData(); f.append('question', question); fetch('/ask_global', { method: 'POST', body: f }).then(() => { window.location.href = '/?'; }); } };
     }
-    function streamArticle(index, question, btn){
+    function streamArticle(index, question, btn) {
       const ans = document.getElementById(`answer_${index}`);
-      if(ans){ ans.textContent=''; }
-      if(btn){ btn.disabled=true; btn.dataset.originalText=btn.textContent; btn.innerHTML='<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>'+(btn.dataset.loadingText||'Answering...'); }
-      let gotChunk=false;
+      if (ans) { ans.textContent = ''; }
+      if (btn) { btn.disabled = true; btn.dataset.originalText = btn.textContent; btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Answering...'); }
+      let gotChunk = false;
       const es = new EventSource(`/ask_article_stream/${index}?q=${encodeURIComponent(question)}`);
-      es.onmessage = (e)=>{ gotChunk=true; if(ans){ ans.dataset.mdAccum = (ans.dataset.mdAccum||'') + e.data; ans.innerHTML = safeMarkdown(ans.dataset.mdAccum); } };
-      es.onerror = ()=>{ es.close(); if(btn){ btn.disabled=false; btn.textContent=btn.dataset.originalText||'Ask'; } if(!gotChunk){ const f=new FormData(); f.append('question', question); fetch('/ask_article/'+index, { method:'POST', body:f }).then(()=>{ window.location.href='/?'; }); } };
+      es.onmessage = (e) => { gotChunk = true; if (ans) { ans.dataset.mdAccum = (ans.dataset.mdAccum || '') + e.data; ans.innerHTML = safeMarkdown(ans.dataset.mdAccum); } };
+      es.onerror = () => { es.close(); if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Ask'; } if (!gotChunk) { const f = new FormData(); f.append('question', question); fetch('/ask_article/' + index, { method: 'POST', body: f }).then(() => { window.location.href = '/?'; }); } };
     }
-    function bindStreaming(){
+    function bindStreaming() {
       const gform = document.querySelector('form[action="/ask_global"]');
-      if(gform){
-        gform.addEventListener('submit', (ev)=>{
+      if (gform) {
+        gform.addEventListener('submit', (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
           const input = gform.querySelector('input[name="question"]');
           const btn = gform.querySelector('button[type="submit"]');
           const q = input ? input.value : '';
-          if(q){ streamGlobal(q, btn); }
+          if (q) { streamGlobal(q, btn); }
         });
       }
-      document.querySelectorAll('form[action^="/ask_article/"]').forEach(f=>{
-        f.addEventListener('submit', (ev)=>{
+      document.querySelectorAll('form[action^="/ask_article/"]').forEach(f => {
+        f.addEventListener('submit', (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
           const action = f.getAttribute('action') || '';
           const m = action.match(/\/ask_article\/(\d+)/);
-          const i = m ? parseInt(m[1],10) : null;
+          const i = m ? parseInt(m[1], 10) : null;
           const input = f.querySelector('input[name="question"]');
           const btn = f.querySelector('button[type="submit"]');
           const q = input ? input.value : '';
-          if(q && i !== null){ streamArticle(i, q, btn); }
+          if (q && i !== null) { streamArticle(i, q, btn); }
         });
       });
     }
-    function startJob(kind, index, btn, evt){
-      try{ if(evt){ evt.stopPropagation(); } }catch(e){}
-      if(btn){
+    function startJob(kind, index, btn, evt) {
+      try { if (evt) { evt.stopPropagation(); } } catch (e) { }
+      if (btn) {
         btn.disabled = true;
         btn.dataset.originalText = btn.textContent;
         btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Processing...');
       }
       let url = '/summarize_all_async';
-      if(kind==='summary_bias'){ url = '/summary_bias_async'; }
-      else if(kind==='unbiased_topic_summary'){ url = '/unbiased_topic_summary_async'; }
-      else if(kind==='summarize_article'){ url = '/summarize_article_async/'+index; }
-      else if(kind==='article_bias'){ url = '/article_bias_async/'+index; }
-      else if(kind==='unbiased_summary'){ url = '/unbiased_summary_async/'+index; }
-      fetch(url, { method:'POST' })
-        .then(r=>r.text())
-        .then(t=>{ let d={}; try{ d=JSON.parse(t); }catch(e){}; const jid=d.job_id; if(!jid){ if(btn){ btn.textContent='Error'; btn.disabled=false; } return; } pollJob(jid, btn); })
-        .catch(()=>{ if(btn){ btn.textContent='Error'; btn.disabled=false; } });
+      if (kind === 'summary_bias') { url = '/summary_bias_async'; }
+      else if (kind === 'unbiased_topic_summary') { url = '/unbiased_topic_summary_async'; }
+      else if (kind === 'summarize_article') { url = '/summarize_article_async/' + index; }
+      else if (kind === 'article_bias') { url = '/article_bias_async/' + index; }
+      else if (kind === 'unbiased_summary') { url = '/unbiased_summary_async/' + index; }
+      fetch(url, { method: 'POST' })
+        .then(r => r.text())
+        .then(t => { let d = {}; try { d = JSON.parse(t); } catch (e) { }; const jid = d.job_id; if (!jid) { if (btn) { btn.textContent = 'Error'; btn.disabled = false; } return; } pollJob(jid, btn); })
+        .catch(() => { if (btn) { btn.textContent = 'Error'; btn.disabled = false; } });
     }
-    function pollJob(jid, btn){
-      function tick(){
-        fetch('/job/'+jid)
-          .then(r=>r.text())
-          .then(t=>{ let d={}; try{ d=JSON.parse(t); }catch(e){}; const s=d.status; if(s==='running'){ if(btn){ btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Running...'); } setTimeout(tick, 800); } else if(s==='done'){ if(btn){ btn.disabled=false; btn.textContent = btn.dataset.originalText || 'Done'; } const tok=d.token; if(tok){ window.location.href='/?token='+encodeURIComponent(tok); } else { window.location.href='/?'; } } else if(s==='error'){ if(btn){ btn.disabled=false; btn.textContent='Error'; } } else { if(btn){ btn.textContent = btn.dataset.originalText || 'Unknown'; } setTimeout(tick, 1200); } })
-          .catch(()=>{ if(btn){ btn.disabled=false; btn.textContent='Error'; } });
+    function pollJob(jid, btn) {
+      function tick() {
+        fetch('/job/' + jid)
+          .then(r => r.text())
+          .then(t => { let d = {}; try { d = JSON.parse(t); } catch (e) { }; const s = d.status; if (s === 'running') { if (btn) { btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin mr-2"></span>' + (btn.dataset.loadingText || 'Running...'); } setTimeout(tick, 800); } else if (s === 'done') { if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Done'; } const tok = d.token; if (tok) { window.location.href = '/?token=' + encodeURIComponent(tok); } else { window.location.href = '/?'; } } else if (s === 'error') { if (btn) { btn.disabled = false; btn.textContent = 'Error'; } } else { if (btn) { btn.textContent = btn.dataset.originalText || 'Unknown'; } setTimeout(tick, 1200); } })
+          .catch(() => { if (btn) { btn.disabled = false; btn.textContent = 'Error'; } });
       }
       tick();
     }
-    function clearOnReload(){
-      try{
+    function clearOnReload() {
+      try {
         const nav = performance.getEntriesByType('navigation')[0];
-        if(nav && nav.type==='reload'){
-          document.querySelectorAll('[data-summary-section]').forEach(n=>{ n.innerHTML=''; });
-          document.querySelectorAll('[id^="answer_"]').forEach(n=>{ n.textContent=''; });
+        if (nav && nav.type === 'reload') {
+          document.querySelectorAll('[data-summary-section]').forEach(n => { n.innerHTML = ''; });
+          document.querySelectorAll('[id^="answer_"]').forEach(n => { n.textContent = ''; });
           const gAns = document.getElementById('global_answer');
-          if(gAns){ gAns.textContent=''; }
+          if (gAns) { gAns.textContent = ''; }
         }
-      }catch(e){}
+      } catch (e) { }
     }
-    function initSearchPersistence(){
+    function initSearchPersistence() {
       const topicInput = document.querySelector('input[name="topic"]');
       const catSelect = document.querySelector('select[name="category"]');
       const savedTopic = localStorage.getItem('search_topic');
       const savedCat = localStorage.getItem('search_category');
-      if(topicInput && savedTopic){ topicInput.value = savedTopic; }
-      if(catSelect && savedCat){ catSelect.value = savedCat; }
-      if(topicInput){ topicInput.addEventListener('input', ()=>{ localStorage.setItem('search_topic', topicInput.value || ''); }); }
-      if(catSelect){ catSelect.addEventListener('change', ()=>{ localStorage.setItem('search_category', catSelect.value || ''); }); }
+      if (topicInput && savedTopic) { topicInput.value = savedTopic; }
+      if (catSelect && savedCat) { catSelect.value = savedCat; }
+      if (topicInput) { topicInput.addEventListener('input', () => { localStorage.setItem('search_topic', topicInput.value || ''); }); }
+      if (catSelect) { catSelect.addEventListener('change', () => { localStorage.setItem('search_category', catSelect.value || ''); }); }
     }
-    function initRecentSearches(){
+    function initRecentSearches() {
       const topicInput = document.querySelector('input[name="topic"]');
       const dropdown = document.getElementById('recent_dropdown');
       const btnClear = document.getElementById('search_clear');
-      const recKey='recent_searches';
-      const rec = JSON.parse(localStorage.getItem(recKey)||'[]');
-      function render(){ if(!dropdown) return; dropdown.innerHTML=''; rec.slice(-5).reverse().forEach(r=>{ const li=document.createElement('div'); li.className='px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700 transition-colors'; li.textContent=r; li.onclick=()=>{ if(topicInput){ topicInput.value=r; } dropdown.classList.add('hidden'); }; dropdown.appendChild(li); }); }
-      function showRecent(){ render(); if(dropdown){ dropdown.classList.remove('hidden'); } }
-      function hideRecent(){ if(dropdown){ dropdown.classList.add('hidden'); } }
-      if(topicInput){
-        topicInput.addEventListener('focus', ()=>{ const v=(topicInput.value||'').trim(); if(!v){ showRecent(); } else { hideRecent(); } });
-        topicInput.addEventListener('input', ()=>{ const v=(topicInput.value||'').trim(); if(!v){ showRecent(); } else { hideRecent(); } });
-        topicInput.addEventListener('blur', ()=>{ setTimeout(hideRecent, 100); const v=(topicInput.value||'').trim(); if(!v) return; const n=[...rec.filter(x=>x!==v), v]; localStorage.setItem(recKey, JSON.stringify(n.slice(-20))); });
+      const recKey = 'recent_searches';
+      const rec = JSON.parse(localStorage.getItem(recKey) || '[]');
+      function render() { if (!dropdown) return; dropdown.innerHTML = ''; rec.slice(-5).reverse().forEach(r => { const li = document.createElement('div'); li.className = 'px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700 transition-colors'; li.textContent = r; li.onclick = () => { if (topicInput) { topicInput.value = r; } dropdown.classList.add('hidden'); }; dropdown.appendChild(li); }); }
+      function showRecent() { render(); if (dropdown) { dropdown.classList.remove('hidden'); } }
+      function hideRecent() { if (dropdown) { dropdown.classList.add('hidden'); } }
+      if (topicInput) {
+        topicInput.addEventListener('focus', () => { const v = (topicInput.value || '').trim(); if (!v) { showRecent(); } else { hideRecent(); } });
+        topicInput.addEventListener('input', () => { const v = (topicInput.value || '').trim(); if (!v) { showRecent(); } else { hideRecent(); } });
+        topicInput.addEventListener('blur', () => { setTimeout(hideRecent, 100); const v = (topicInput.value || '').trim(); if (!v) return; const n = [...rec.filter(x => x !== v), v]; localStorage.setItem(recKey, JSON.stringify(n.slice(-20))); });
       }
-      document.addEventListener('click', (e)=>{ const container = topicInput ? topicInput.parentElement : null; if(container && !container.contains(e.target)){ hideRecent(); } });
-      if(btnClear){ btnClear.addEventListener('click', ()=>{ if(topicInput){ topicInput.value=''; localStorage.setItem('search_topic',''); } }); }
+      document.addEventListener('click', (e) => { const container = topicInput ? topicInput.parentElement : null; if (container && !container.contains(e.target)) { hideRecent(); } });
+      if (btnClear) { btnClear.addEventListener('click', () => { if (topicInput) { topicInput.value = ''; localStorage.setItem('search_topic', ''); } }); }
     }
-    function initTypeahead(){
+    function initTypeahead() {
       const topicInput = document.querySelector('input[name="topic"]');
       const dd = document.getElementById('suggest_dropdown');
       const status = document.getElementById('search_status');
-      let timer=null;
-      function debounced(){ if(timer){ clearTimeout(timer); } timer=setTimeout(async()=>{ const q=(topicInput.value||'').trim(); if(!q){ if(dd){ dd.classList.add('hidden'); dd.innerHTML=''; } if(status){ status.textContent=''; } return; } if(status){ status.textContent='Searching...'; }
-        try{ const r = await fetch('/suggest?q='+encodeURIComponent(q)); const t = await r.text(); let d={}; try{ d=JSON.parse(t); }catch(e){}; const arr=d.suggestions||[]; if(dd){ dd.innerHTML=''; arr.forEach(s=>{ const li=document.createElement('div'); li.className='px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700 transition-colors'; li.textContent=s; li.onclick=()=>{ topicInput.value=s; dd.classList.add('hidden'); }; dd.appendChild(li); }); const focused = document.activeElement === topicInput; dd.classList.toggle('hidden', arr.length===0 || !focused); } } catch(e){} finally{ if(status){ status.textContent=''; } } }, 300); }
-      if(topicInput){ topicInput.addEventListener('input', debounced); topicInput.addEventListener('focus', debounced); topicInput.addEventListener('blur', ()=>{ if(dd){ dd.classList.add('hidden'); } }); }
-      document.addEventListener('click', (e)=>{ const container = topicInput ? topicInput.parentElement : null; if(container && !container.contains(e.target)){ if(dd){ dd.classList.add('hidden'); } } });
+      let timer = null;
+      function debounced() {
+        if (timer) { clearTimeout(timer); } timer = setTimeout(async () => {
+          const q = (topicInput.value || '').trim(); if (!q) { if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; } if (status) { status.textContent = ''; } return; } if (status) { status.textContent = 'Searching...'; }
+          try { const r = await fetch('/suggest?q=' + encodeURIComponent(q)); const t = await r.text(); let d = {}; try { d = JSON.parse(t); } catch (e) { }; const arr = d.suggestions || []; if (dd) { dd.innerHTML = ''; arr.forEach(s => { const li = document.createElement('div'); li.className = 'px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700 transition-colors'; li.textContent = s; li.onclick = () => { topicInput.value = s; dd.classList.add('hidden'); }; dd.appendChild(li); }); const focused = document.activeElement === topicInput; dd.classList.toggle('hidden', arr.length === 0 || !focused); } } catch (e) { } finally { if (status) { status.textContent = ''; } }
+        }, 300);
+      }
+      if (topicInput) { topicInput.addEventListener('input', debounced); topicInput.addEventListener('focus', debounced); topicInput.addEventListener('blur', () => { if (dd) { dd.classList.add('hidden'); } }); }
+      document.addEventListener('click', (e) => { const container = topicInput ? topicInput.parentElement : null; if (container && !container.contains(e.target)) { if (dd) { dd.classList.add('hidden'); } } });
     }
-    function initOnboarding(){
+    function initOnboarding() {
       const seen = localStorage.getItem('onboarding_seen');
       const banner = document.getElementById('onboarding');
-      if(banner){ banner.classList.toggle('hidden', !!seen); const close=document.getElementById('onboarding_close'); if(close){ close.onclick=()=>{ localStorage.setItem('onboarding_seen','1'); banner.classList.add('hidden'); }; } }
+      if (banner) { banner.classList.toggle('hidden', !!seen); const close = document.getElementById('onboarding_close'); if (close) { close.onclick = () => { localStorage.setItem('onboarding_seen', '1'); banner.classList.add('hidden'); }; } }
     }
-    document.addEventListener('DOMContentLoaded', ()=>{ attachLoading(); bindStreaming(); clearOnReload(); initSearchPersistence(); initRecentSearches(); initTypeahead(); initOnboarding(); renderInitialMarkdown(); });
+    function initSettings() {
+      const modal = document.getElementById('settings_modal');
+      const btnOpen = document.getElementById('settings_btn');
+      const btnClose = document.getElementById('settings_close');
+      const btnSave = document.getElementById('settings_save');
+      const providerRadios = document.querySelectorAll('input[name="provider"]');
+      const geminiKey = document.getElementById('gemini_key');
+      const geminiSection = document.getElementById('gemini_section');
+      const modelSelect = document.getElementById('model_select');
+      const contextLimitInput = document.getElementById('context_limit');
+
+      if (!modal) return;
+
+      function toggleModal(show) { modal.classList.toggle('hidden', !show); }
+      if (btnOpen) btnOpen.onclick = () => toggleModal(true);
+      if (btnClose) btnClose.onclick = () => toggleModal(false);
+
+      providerRadios.forEach(r => {
+        r.addEventListener('change', (e) => {
+          const p = e.target.value;
+          if (geminiSection) geminiSection.classList.toggle('hidden', p !== 'gemini');
+          fetchModels(p);
+        });
+      });
+
+      async function fetchModels(provider) {
+        if (!modelSelect) return;
+        modelSelect.innerHTML = '<option>Loading...</option>';
+        modelSelect.disabled = true;
+        try {
+          const r = await fetch(`/api/models/${provider}`);
+          const d = await r.json();
+          modelSelect.innerHTML = '';
+          (d.models || []).forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            modelSelect.appendChild(opt);
+          });
+          modelSelect.disabled = false;
+          // Pre-select if saved
+          const saved = provider === 'gemini' ? '{{ settings.gemini_model }}' : '{{ settings.ollama_model }}';
+          if (saved && Array.from(modelSelect.options).some(o => o.value === saved)) modelSelect.value = saved;
+        } catch (e) {
+          modelSelect.innerHTML = '<option>Error loading models</option>';
+        }
+      }
+
+      if (btnSave) {
+        btnSave.onclick = async () => {
+          const p = document.querySelector('input[name="provider"]:checked').value;
+          const k = geminiKey ? geminiKey.value : '';
+          const m = modelSelect ? modelSelect.value : '';
+          const cl = contextLimitInput ? contextLimitInput.value : '';
+
+          btnSave.disabled = true;
+          btnSave.textContent = 'Saving...';
+
+          try {
+            await fetch('/api/settings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                provider: p,
+                gemini_key: k,
+                [p === 'gemini' ? 'gemini_model' : 'ollama_model']: m,
+                context_limit: cl
+              })
+            });
+            window.location.reload();
+          } catch (e) {
+            alert('Failed to save settings');
+            btnSave.disabled = false;
+            btnSave.textContent = 'Save Changes';
+          }
+        };
+      }
+
+      // Initial load
+      const currentProvider = '{{ settings.provider }}';
+      if (geminiSection) geminiSection.classList.toggle('hidden', currentProvider !== 'gemini');
+      fetchModels(currentProvider);
+    }
+    document.addEventListener('DOMContentLoaded', () => { attachLoading(); bindStreaming(); clearOnReload(); initSearchPersistence(); initRecentSearches(); initTypeahead(); initOnboarding(); initSettings(); renderInitialMarkdown(); });
   </script>
 </head>
+
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
-  
+
   <header class="fixed top-0 left-0 right-0 z-50 glass">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary-500/30">
+        <div
+          class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary-500/30">
           AI
         </div>
         <div>
@@ -187,73 +333,115 @@
           <div class="text-xs text-slate-500 font-medium">Bias-Aware Intelligence</div>
         </div>
       </div>
-      <a href="/metrics" class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
-        </svg>
-        Metrics
-      </a>
+      <div class="flex items-center gap-4">
+        <button id="settings_btn"
+          class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Settings
+        </button>
+        <a href="/metrics"
+          class="text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+          </svg>
+          Metrics
+        </a>
+      </div>
     </div>
   </header>
 
   <main class="flex-grow pt-24 pb-12 px-6">
     <div class="max-w-7xl mx-auto">
-      
+
       {% if error_message %}
       <div class="mb-6 p-4 rounded-xl bg-red-50 text-red-900 border border-red-200 flex items-center gap-3 shadow-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         {{ error_message }}
       </div>
       {% endif %}
 
       <!-- Hero / Search Section -->
-      <section class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 md:p-10 mb-10 border border-slate-100 relative overflow-hidden">
-        <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-        <div class="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-teal-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-        
+      <section
+        class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 md:p-10 mb-10 border border-slate-100 relative overflow-hidden">
+        <div
+          class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-primary-50 rounded-full blur-3xl opacity-50 pointer-events-none">
+        </div>
+        <div
+          class="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-teal-50 rounded-full blur-3xl opacity-50 pointer-events-none">
+        </div>
+
         <div class="relative z-10">
           <h2 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2 text-center">Discover Unbiased Truth</h2>
-          <p class="text-slate-500 text-center mb-8 max-w-2xl mx-auto">Analyze news topics with AI-powered summaries, bias detection, and cross-reference multiple sources instantly.</p>
-          
+          <p class="text-slate-500 text-center mb-8 max-w-2xl mx-auto">Analyze news topics with AI-powered summaries,
+            bias detection, and cross-reference multiple sources instantly.</p>
+
           <div class="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto">
             <form method="post" action="/fetch" class="flex-1 flex gap-3 relative">
               <div class="relative flex-1 group">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <input title="Type a topic to search" type="text" name="topic" placeholder="Search for a topic (e.g., Artificial Intelligence)" value="{{ topic or '' }}" class="w-full pl-11 pr-10 py-4 bg-slate-50 border-2 border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-medium placeholder:text-slate-400" />
-                <button type="button" id="search_clear" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors">
+                <input title="Type a topic to search" type="text" name="topic"
+                  placeholder="Search for a topic (e.g., Artificial Intelligence)" value="{{ topic or '' }}"
+                  class="w-full pl-11 pr-10 py-4 bg-slate-50 border-2 border-slate-100 text-slate-900 rounded-2xl focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all font-medium placeholder:text-slate-400" />
+                <button type="button" id="search_clear"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200 transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    <path fill-rule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd" />
                   </svg>
                 </button>
                 <div id="search_status" class="absolute left-4 -bottom-6 text-xs text-slate-500 font-medium"></div>
-                <div id="suggest_dropdown" class="absolute z-20 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl hidden overflow-hidden py-2"></div>
-                <div id="recent_dropdown" class="absolute z-10 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl hidden overflow-hidden py-2"></div>
+                <div id="suggest_dropdown"
+                  class="absolute z-20 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl hidden overflow-hidden py-2">
+                </div>
+                <div id="recent_dropdown"
+                  class="absolute z-10 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl hidden overflow-hidden py-2">
+                </div>
               </div>
-              <button type="submit" class="px-8 py-4 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 shadow-lg shadow-primary-600/30 font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-2" title="Fetch articles">
+              <button type="submit"
+                class="px-8 py-4 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 shadow-lg shadow-primary-600/30 font-semibold transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                title="Fetch articles">
                 <span>Search</span>
               </button>
             </form>
-            
+
             <div class="flex items-center gap-2 md:w-auto w-full">
               <span class="text-slate-400 text-sm font-medium hidden md:block">or</span>
               <form method="post" action="/fetch_category" class="flex gap-2 w-full">
                 <div class="relative flex-1">
-                  <select name="category" class="w-full appearance-none px-4 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-secondary-500 focus:ring-4 focus:ring-secondary-500/10 transition-all font-medium text-slate-700 cursor-pointer" title="Select a category">
+                  <select name="category"
+                    class="w-full appearance-none px-4 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:outline-none focus:border-secondary-500 focus:ring-4 focus:ring-secondary-500/10 transition-all font-medium text-slate-700 cursor-pointer"
+                    title="Select a category">
                     {% for c in categories %}
                     <option value="{{c}}" {% if selected_category==c %}selected{% endif %}>{{c}}</option>
                     {% endfor %}
                   </select>
                   <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-slate-500">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
                   </div>
                 </div>
-                <button type="submit" class="px-6 py-4 bg-secondary-800 text-white rounded-2xl hover:bg-secondary-900 shadow-lg shadow-secondary-800/30 font-semibold transition-all hover:scale-105 active:scale-95" title="Filter by category">Filter</button>
+                <button type="submit"
+                  class="px-6 py-4 bg-secondary-800 text-white rounded-2xl hover:bg-secondary-900 shadow-lg shadow-secondary-800/30 font-semibold transition-all hover:scale-105 active:scale-95"
+                  title="Filter by category">Filter</button>
               </form>
             </div>
           </div>
@@ -262,9 +450,14 @@
 
       <!-- Action Bar -->
       <div class="flex flex-wrap gap-4 mb-8 justify-center">
-        <button type="button" onclick="startJob('summarize_all', null, this, event)" class="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-primary-300 hover:text-primary-700 shadow-sm font-medium transition-all flex items-center gap-2 group" data-loading-text="Summarizing...">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary-500 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <button type="button" onclick="startJob('summarize_all', null, this, event)"
+          class="px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:border-primary-300 hover:text-primary-700 shadow-sm font-medium transition-all flex items-center gap-2 group"
+          data-loading-text="Summarizing...">
+          <svg xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5 text-primary-500 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           Summarize All Articles
         </button>
@@ -273,33 +466,51 @@
       {% if summary_visible %}
       <div class="mb-12 animate-fade-in">
         <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-          <div class="bg-gradient-to-r from-primary-50 to-white px-8 py-6 border-b border-slate-100 flex justify-between items-center flex-wrap gap-4">
+          <div
+            class="bg-gradient-to-r from-primary-50 to-white px-8 py-6 border-b border-slate-100 flex justify-between items-center flex-wrap gap-4">
             <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <span class="w-2 h-8 bg-primary-500 rounded-full"></span>
               Topic Summary
             </h3>
             <div class="flex gap-3">
-              <button type="button" onclick="startJob('summary_bias', null, this, event)" class="px-4 py-2 bg-rose-50 text-rose-700 border border-rose-100 rounded-lg hover:bg-rose-100 font-medium text-sm transition-colors flex items-center gap-2" data-loading-text="Analyzing...">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+              <button type="button" onclick="startJob('summary_bias', null, this, event)"
+                class="px-4 py-2 bg-rose-50 text-rose-700 border border-rose-100 rounded-lg hover:bg-rose-100 font-medium text-sm transition-colors flex items-center gap-2"
+                data-loading-text="Analyzing...">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
                 </svg>
                 Analyze Bias
+              </button>
+              <button type="button" onclick="closeCard(this)"
+                class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                title="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>
           <div class="p-8">
-            <div class="prose prose-slate max-w-none prose-lg" data-summary-section data-markdown>{{ summary_all }}</div>
-            
+            <div class="prose prose-slate max-w-none prose-lg" data-summary-section data-markdown>{{ summary_all }}
+            </div>
+
             <div class="mt-8 pt-6 border-t border-slate-100">
               <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Ask a follow-up</h4>
               <div class="flex flex-col md:flex-row gap-4 items-start">
                 <form method="post" action="/ask_global" class="flex-1 flex gap-3 w-full">
-                  <input type="text" name="question" placeholder="Ask a question about this topic..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 transition-all" />
-                  <button type="submit" class="px-6 py-3 bg-teal-600 text-white rounded-xl hover:bg-teal-700 shadow-lg shadow-teal-600/20 font-medium transition-all hover:-translate-y-0.5">Ask</button>
+                  <input type="text" name="question" placeholder="Ask a question about this topic..."
+                    class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10 transition-all" />
+                  <button type="submit"
+                    class="px-6 py-3 bg-teal-600 text-white rounded-xl hover:bg-teal-700 shadow-lg shadow-teal-600/20 font-medium transition-all hover:-translate-y-0.5">Ask</button>
                 </form>
               </div>
               <div class="mt-4">
-                <div id="global_answer" class="prose prose-slate max-w-none bg-teal-50/50 p-6 rounded-xl border border-teal-100" data-markdown>{% if answers.global %}{{ answers.global }}{% endif %}</div>
+                <div id="global_answer"
+                  class="prose prose-slate max-w-none bg-teal-50/50 p-6 rounded-xl border border-teal-100"
+                  data-markdown>{% if answers.global %}{{ answers.global }}{% endif %}</div>
               </div>
             </div>
           </div>
@@ -310,22 +521,30 @@
       {% if bias_summary.analysis %}
       <div class="mb-12 animate-fade-in">
         <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-          <div class="bg-gradient-to-r from-rose-50 to-white px-8 py-6 border-b border-slate-100">
+          <div
+            class="bg-gradient-to-r from-rose-50 to-white px-8 py-6 border-b border-slate-100 flex justify-between items-center">
             <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <span class="w-2 h-8 bg-rose-500 rounded-full"></span>
               Bias Analysis
             </h3>
+            <button type="button" onclick="closeCard(this)"
+              class="p-2 text-slate-400 hover:text-slate-600 hover:bg-rose-100 rounded-lg transition-colors"
+              title="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
           <div class="p-8">
             <div class="prose prose-slate max-w-none" data-markdown>{{ bias_summary.analysis }}</div>
-            
+
             {% if bias_summary.score and bias_summary.score.score is not none %}
             {% set b = bias_summary.score.score %}
-            {% set color = 'bg-green-500' if b<=30 else ('bg-yellow-500' if b<=70 else 'bg-red-500') %}
-            {% set text_color = 'text-green-700' if b<=30 else ('text-yellow-700' if b<=70 else 'text-red-700') %}
-            {% set bg_color = 'bg-green-50' if b<=30 else ('bg-yellow-50' if b<=70 else 'bg-red-50') %}
-            
-            <div class="mt-8 p-6 rounded-2xl {{ bg_color }} border border-opacity-50 border-slate-200">
+            {% set color = 'bg-green-500' if b<=30 else ('bg-yellow-500' if b<=70 else 'bg-red-500' ) %} {% set
+              text_color='text-green-700' if b<=30 else ('text-yellow-700' if b<=70 else 'text-red-700' ) %} {% set
+              bg_color='bg-green-50' if b<=30 else ('bg-yellow-50' if b<=70 else 'bg-red-50' ) %} <div
+              class="mt-8 p-6 rounded-2xl {{ bg_color }} border border-opacity-50 border-slate-200">
               <div class="flex items-center justify-between mb-2">
                 <span class="font-bold {{ text_color }}">Bias Score</span>
                 <span class="font-bold text-2xl {{ text_color }}">{{ b }}%</span>
@@ -338,179 +557,263 @@
                 <span>Moderate</span>
                 <span>High Bias</span>
               </div>
-            </div>
-            {% endif %}
-            
-            <div class="mt-6">
-              <button type="button" onclick="startJob('unbiased_topic_summary', null, this, event)" class="px-5 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 shadow-lg shadow-slate-800/20 font-medium transition-all flex items-center gap-2" data-loading-text="Rewriting...">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Generate Unbiased Summary
-              </button>
-            </div>
           </div>
+          {% endif %}
+
+          <div class="mt-6">
+            <button type="button" onclick="startJob('unbiased_topic_summary', null, this, event)"
+              class="px-5 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 shadow-lg shadow-slate-800/20 font-medium transition-all flex items-center gap-2"
+              data-loading-text="Rewriting...">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Generate Unbiased Summary
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if unbiased_topic_summary %}
+    <div class="mb-12 animate-fade-in">
+      <div
+        class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 ring-4 ring-green-50">
+        <div
+          class="bg-gradient-to-r from-green-50 to-white px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+          <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <span class="w-2 h-8 bg-green-500 rounded-full"></span>
+            Unbiased Perspective
+          </h3>
+          <button type="button" onclick="closeCard(this)"
+            class="p-2 text-slate-400 hover:text-slate-600 hover:bg-green-100 rounded-lg transition-colors"
+            title="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="p-8">
+          <div class="prose prose-slate max-w-none" data-markdown>{{ unbiased_topic_summary }}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <section class="mt-16">
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-3xl font-bold text-slate-900">Latest Articles</h2>
+        <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm font-medium">{{ articles|length }}
+          results</span>
+      </div>
+
+      {% if articles|length == 0 %}
+      <div class="p-12 rounded-3xl bg-white border border-slate-200 text-center shadow-sm">
+        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">No articles found</h3>
+        <p class="text-slate-500 mb-6">Try adjusting your search terms or category filter.</p>
+        <div class="flex justify-center gap-3">
+          <form method="post" action="/fetch"><input type="hidden" name="topic" value="{{ topic or '' }}" /><button
+              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">Retry
+              Search</button></form>
+          <form method="post" action="/fetch_category"><input type="hidden" name="category"
+              value="{{ selected_category or 'Trending' }}" /><button
+              class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium">Reset
+              Category</button></form>
         </div>
       </div>
       {% endif %}
 
-      {% if unbiased_topic_summary %}
-      <div class="mb-12 animate-fade-in">
-        <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 ring-4 ring-green-50">
-          <div class="bg-gradient-to-r from-green-50 to-white px-8 py-6 border-b border-slate-100">
-            <h3 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <span class="w-2 h-8 bg-green-500 rounded-full"></span>
-              Unbiased Perspective
-            </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {% for a in articles %}
+        <div
+          class="group bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col card-hover {{ 'col-span-full ring-2 ring-primary-500/20' if expanded_article == loop.index0 else '' }}">
+          {% if a.urlToImage %}
+          <div class="relative overflow-hidden h-56">
+            <a href="{{ a.url or '#' }}" target="_blank" rel="noopener noreferrer nofollow" class="block h-full">
+              <img src="{{ a.urlToImage }}" alt="Thumbnail"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+              <div
+                class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              </div>
+            </a>
+            <div
+              class="absolute bottom-3 left-3 right-3 flex justify-between items-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <span class="text-xs font-bold text-white bg-black/50 backdrop-blur px-2 py-1 rounded-md">{{ a.source.name
+                if a.source else 'News' }}</span>
+            </div>
           </div>
-          <div class="p-8">
-            <div class="prose prose-slate max-w-none" data-markdown>{{ unbiased_topic_summary }}</div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
-      <section class="mt-16">
-        <div class="flex items-center justify-between mb-8">
-          <h2 class="text-3xl font-bold text-slate-900">Latest Articles</h2>
-          <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm font-medium">{{ articles|length }} results</span>
-        </div>
-        
-        {% if articles|length == 0 %}
-        <div class="p-12 rounded-3xl bg-white border border-slate-200 text-center shadow-sm">
-          <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+          {% else %}
+          <div class="h-56 bg-slate-100 flex items-center justify-center text-slate-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-2">No articles found</h3>
-          <p class="text-slate-500 mb-6">Try adjusting your search terms or category filter.</p>
-          <div class="flex justify-center gap-3">
-            <form method="post" action="/fetch"><input type="hidden" name="topic" value="{{ topic or '' }}" /><button class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">Retry Search</button></form>
-            <form method="post" action="/fetch_category"><input type="hidden" name="category" value="{{ selected_category or 'Trending' }}" /><button class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium">Reset Category</button></form>
-          </div>
-        </div>
-        {% endif %}
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {% for a in articles %}
-          <div class="group bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col card-hover {{ 'col-span-full ring-2 ring-primary-500/20' if expanded_article == loop.index0 else '' }}">
-            {% if a.urlToImage %}
-            <div class="relative overflow-hidden h-56">
-              <a href="{{ a.url or '#' }}" target="_blank" rel="noopener noreferrer nofollow" class="block h-full">
-                <img src="{{ a.urlToImage }}" alt="Thumbnail" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </a>
-              <div class="absolute bottom-3 left-3 right-3 flex justify-between items-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <span class="text-xs font-bold text-white bg-black/50 backdrop-blur px-2 py-1 rounded-md">{{ a.source.name if a.source else 'News' }}</span>
-              </div>
+          {% endif %}
+
+          <div class="p-6 flex-1 flex flex-col">
+            <div class="flex items-center gap-2 mb-3 text-xs font-medium text-slate-400">
+              <span class="uppercase tracking-wider">{{ a.source.name if a.source else 'Unknown Source' }}</span>
+              <span>•</span>
+              <span>{{ a.publishedAt or 'Just now' }}</span>
             </div>
-            {% else %}
-            <div class="h-56 bg-slate-100 flex items-center justify-center text-slate-300">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+
+            <h3
+              class="font-bold text-xl text-slate-900 mb-3 leading-tight line-clamp-3 group-hover:text-primary-600 transition-colors">
+              {% if a.url %}
+              <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ a.title or 'No Title' }}</a>
+              {% else %}
+              {{ a.title or 'No Title' }}
+              {% endif %}
+            </h3>
+
+            <p class="text-slate-600 text-sm mb-6 line-clamp-3 flex-1">
+              {{ a.description or 'No description available for this article.' }}
+            </p>
+
+            <div class="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-50">
+              <button type="button" onclick="startJob('summarize_article', {{ loop.index0 }}, this, event)"
+                class="flex-1 px-3 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium transition-colors text-center"
+                data-loading-text="Summarizing...">Summarize</button>
+              <button type="button" onclick="startJob('article_bias', {{ loop.index0 }}, this, event)"
+                class="flex-1 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-sm font-medium transition-colors text-center"
+                data-loading-text="Analyzing...">Bias Check</button>
+            </div>
+
+            {% if summaries[loop.index0] %}
+            <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-fade-in">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Summary</h4>
+                <button type="button" onclick="closeCard(this)"
+                  class="-mt-1 -mr-1 p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200 transition-colors"
+                  title="Close">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div class="text-slate-700 text-sm prose prose-sm max-w-none" data-summary-section data-markdown>{{
+                summaries[loop.index0] }}</div>
             </div>
             {% endif %}
-            
-            <div class="p-6 flex-1 flex flex-col">
-              <div class="flex items-center gap-2 mb-3 text-xs font-medium text-slate-400">
-                <span class="uppercase tracking-wider">{{ a.source.name if a.source else 'Unknown Source' }}</span>
-                <span>•</span>
-                <span>{{ a.publishedAt or 'Just now' }}</span>
-              </div>
-              
-              <h3 class="font-bold text-xl text-slate-900 mb-3 leading-tight line-clamp-3 group-hover:text-primary-600 transition-colors">
-                {% if a.url %}
-                  <a href="{{ a.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ a.title or 'No Title' }}</a>
-                {% else %}
-                  {{ a.title or 'No Title' }}
-                {% endif %}
-              </h3>
-              
-              <p class="text-slate-600 text-sm mb-6 line-clamp-3 flex-1">
-                {{ a.description or 'No description available for this article.' }}
-              </p>
-  
-              <div class="flex flex-wrap gap-2 mt-auto pt-4 border-t border-slate-50">
-                <button type="button" onclick="startJob('summarize_article', {{ loop.index0 }}, this, event)" class="flex-1 px-3 py-2 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 text-sm font-medium transition-colors text-center" data-loading-text="Summarizing...">Summarize</button>
-                <button type="button" onclick="startJob('article_bias', {{ loop.index0 }}, this, event)" class="flex-1 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-sm font-medium transition-colors text-center" data-loading-text="Analyzing...">Bias Check</button>
-              </div>
-  
-              {% if summaries[loop.index0] %}
-              <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 animate-fade-in">
-                <h4 class="font-bold text-slate-800 mb-2 text-sm uppercase tracking-wide">Summary</h4>
-                <div class="text-slate-700 text-sm prose prose-sm max-w-none" data-summary-section data-markdown>{{ summaries[loop.index0] }}</div>
-              </div>
-              {% endif %}
-  
-              {% if bias[loop.index0] %}
-              <div class="mt-4 p-4 bg-white rounded-xl border border-rose-100 shadow-sm animate-fade-in">
-                <h4 class="font-bold text-rose-700 mb-2 text-sm uppercase tracking-wide flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+
+            {% if bias[loop.index0] %}
+            <div class="mt-4 p-4 bg-white rounded-xl border border-rose-100 shadow-sm animate-fade-in">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-bold text-rose-700 text-sm uppercase tracking-wide flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                   Bias Analysis
                 </h4>
-                <div class="text-slate-700 text-sm prose prose-sm max-w-none mb-3" data-markdown>{{ bias[loop.index0].analysis }}</div>
-                {% if bias[loop.index0].score and bias[loop.index0].score.score is not none %}
-                <div class="mt-2">
-                  <div class="flex justify-between text-xs font-medium text-slate-500 mb-1">
-                    <span>Bias Level</span>
-                    <span class="{{ 'text-green-600' if bias[loop.index0].score.score <= 30 else ('text-yellow-600' if bias[loop.index0].score.score <= 70 else 'text-red-600') }}">{{ bias[loop.index0].score.score }}%</span>
-                  </div>
-                  <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div class="h-2 rounded-full {{ 'bg-green-500' if bias[loop.index0].score.score <= 30 else ('bg-yellow-500' if bias[loop.index0].score.score <= 70 else 'bg-red-500') }}" style="width: {{ bias[loop.index0].score.score }}%;"></div>
-                  </div>
-                </div>
-                {% endif %}
-                <div class="mt-3 pt-3 border-t border-slate-100">
-                  <button type="button" onclick="startJob('unbiased_summary', {{ loop.index0 }}, this, event)" class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-medium transition-colors" data-loading-text="Rewriting...">Unbiased Summary</button>
-                </div>
+                <button type="button" onclick="closeCard(this)"
+                  class="-mt-1 -mr-1 p-1 text-rose-300 hover:text-rose-600 rounded-md hover:bg-rose-50 transition-colors"
+                  title="Close">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              {% endif %}
-  
-              {% if unbiased_summary[loop.index0] %}
-              <div class="mt-4 p-4 bg-green-50 rounded-xl border border-green-100 animate-fade-in">
-                <h4 class="font-bold text-green-800 mb-2 text-sm uppercase tracking-wide">Unbiased Summary</h4>
-                <div class="text-slate-700 text-sm prose prose-sm max-w-none" data-markdown>{{ unbiased_summary[loop.index0] }}</div>
-              </div>
-              {% endif %}
-  
-              {% if summaries[loop.index0] or unbiased_summary[loop.index0] %}
-              <div class="mt-4 pt-4 border-t border-slate-100">
-                <form method="post" action="/ask_article/{{ loop.index0 }}" class="flex gap-2">
-                  <input type="text" name="question" placeholder="Ask about this article..." class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm" />
-                  <button type="submit" class="px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium">Ask</button>
-                </form>
-                <div class="mt-3">
-                  <div id="answer_{{ loop.index0 }}" class="text-slate-700 text-sm prose prose-sm max-w-none bg-teal-50/30 p-3 rounded-lg" data-markdown>{% if answers[loop.index0] %}{{ answers[loop.index0] }}{% endif %}</div>
+              <div class="text-slate-700 text-sm prose prose-sm max-w-none mb-3" data-markdown>{{
+                bias[loop.index0].analysis }}</div>
+              {% if bias[loop.index0].score and bias[loop.index0].score.score is not none %}
+              <div class="mt-2">
+                <div class="flex justify-between text-xs font-medium text-slate-500 mb-1">
+                  <span>Bias Level</span>
+                  <span
+                    class="{{ 'text-green-600' if bias[loop.index0].score.score <= 30 else ('text-yellow-600' if bias[loop.index0].score.score <= 70 else 'text-red-600') }}">{{
+                    bias[loop.index0].score.score }}%</span>
+                </div>
+                <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    class="h-2 rounded-full {{ 'bg-green-500' if bias[loop.index0].score.score <= 30 else ('bg-yellow-500' if bias[loop.index0].score.score <= 70 else 'bg-red-500') }}"
+                    style="width: {{ bias[loop.index0].score.score }}%;"></div>
                 </div>
               </div>
               {% endif %}
+              <div class="mt-3 pt-3 border-t border-slate-100">
+                <button type="button" onclick="startJob('unbiased_summary', {{ loop.index0 }}, this, event)"
+                  class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 text-sm font-medium transition-colors"
+                  data-loading-text="Rewriting...">Unbiased Summary</button>
+              </div>
             </div>
+            {% endif %}
+
+            {% if unbiased_summary[loop.index0] %}
+            <div class="mt-4 p-4 bg-green-50 rounded-xl border border-green-100 animate-fade-in">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-bold text-green-800 text-sm uppercase tracking-wide">Unbiased Summary</h4>
+                <button type="button" onclick="closeCard(this)"
+                  class="-mt-1 -mr-1 p-1 text-green-600 hover:text-green-800 rounded-md hover:bg-green-100 transition-colors"
+                  title="Close">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div class="text-slate-700 text-sm prose prose-sm max-w-none" data-markdown>{{
+                unbiased_summary[loop.index0] }}</div>
+            </div>
+            {% endif %}
+
+            {% if summaries[loop.index0] or unbiased_summary[loop.index0] %}
+            <div class="mt-4 pt-4 border-t border-slate-100">
+              <form method="post" action="/ask_article/{{ loop.index0 }}" class="flex gap-2">
+                <input type="text" name="question" placeholder="Ask about this article..."
+                  class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm" />
+                <button type="submit"
+                  class="px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium">Ask</button>
+              </form>
+              <div class="mt-3">
+                <div id="answer_{{ loop.index0 }}"
+                  class="text-slate-700 text-sm prose prose-sm max-w-none bg-teal-50/30 p-3 rounded-lg" data-markdown>{%
+                  if answers[loop.index0] %}{{ answers[loop.index0] }}{% endif %}</div>
+              </div>
+            </div>
+            {% endif %}
           </div>
-          {% endfor %}
         </div>
-        
-        {% if articles|length > 9 %}
-        <div class="mt-12 flex justify-center">
-          <button id="load_more" class="px-8 py-3 bg-white border border-slate-300 text-slate-700 rounded-full hover:bg-slate-50 hover:border-slate-400 font-medium shadow-sm transition-all">Load More Articles</button>
-        </div>
-        <script>
-          (function(){
-            const grid = document.querySelector('.grid');
-            if(!grid) return;
-            const cards = Array.from(grid.children);
-            let shown = 9;
-            function update(){ cards.forEach((c,i)=>{ c.classList.toggle('hidden', i>=shown); }); }
-            update();
-            const btn = document.getElementById('load_more');
-            if(btn){ btn.onclick = ()=>{ shown += 9; update(); if(shown >= cards.length){ btn.classList.add('hidden'); } };
-              const io = new IntersectionObserver(entries=>{ entries.forEach(e=>{ if(e.isIntersecting){ shown += 9; update(); if(shown >= cards.length){ btn.classList.add('hidden'); io.disconnect(); } } }); }); io.observe(btn);
-            }
-          })();
-        </script>
-        {% endif %}
-      </section>
+        {% endfor %}
+      </div>
+
+      {% if articles|length > 9 %}
+      <div class="mt-12 flex justify-center">
+        <button id="load_more"
+          class="px-8 py-3 bg-white border border-slate-300 text-slate-700 rounded-full hover:bg-slate-50 hover:border-slate-400 font-medium shadow-sm transition-all">Load
+          More Articles</button>
+      </div>
+      <script>
+        (function () {
+          const grid = document.querySelector('.grid');
+          if (!grid) return;
+          const cards = Array.from(grid.children);
+          let shown = 9;
+          function update() { cards.forEach((c, i) => { c.classList.toggle('hidden', i >= shown); }); }
+          update();
+          const btn = document.getElementById('load_more');
+          if (btn) {
+            btn.onclick = () => { shown += 9; update(); if (shown >= cards.length) { btn.classList.add('hidden'); } };
+            const io = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) { shown += 9; update(); if (shown >= cards.length) { btn.classList.add('hidden'); io.disconnect(); } } }); }); io.observe(btn);
+          }
+        })();
+      </script>
+      {% endif %}
+    </section>
     </div>
   </main>
 
@@ -520,5 +823,97 @@
     </div>
   </footer>
 
+  <!-- Settings Modal -->
+  <div id="settings_modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+        <div
+          class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div
+                class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 sm:mx-0 sm:h-10 sm:w-10">
+                <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                <h3 class="text-lg font-semibold leading-6 text-slate-900" id="modal-title">AI Settings</h3>
+                <div class="mt-4 space-y-4">
+
+                  <!-- Provider Selection -->
+                  <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">AI Provider</label>
+                    <div class="flex gap-4">
+                      <label
+                        class="flex items-center gap-2 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 flex-1">
+                        <input type="radio" name="provider" value="gemini"
+                          class="text-primary-600 focus:ring-primary-500" {% if settings.provider=='gemini' %}checked{%
+                          endif %}>
+                        <span class="text-sm font-medium text-slate-700">Google Gemini</span>
+                      </label>
+                      <label
+                        class="flex items-center gap-2 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 flex-1">
+                        <input type="radio" name="provider" value="ollama"
+                          class="text-primary-600 focus:ring-primary-500" {% if settings.provider=='ollama' %}checked{%
+                          endif %}>
+                        <span class="text-sm font-medium text-slate-700">Ollama (Local)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Gemini API Key -->
+                  <div id="gemini_section" class="{% if settings.provider != 'gemini' %}hidden{% endif %}">
+                    <label for="gemini_key" class="block text-sm font-medium text-slate-700 mb-1">Gemini API Key</label>
+                    <input type="password" name="gemini_key" id="gemini_key" value="{{ settings.gemini_key }}"
+                      class="w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border"
+                      placeholder="Enter your API key">
+                  </div>
+
+                  <!-- Model Selection -->
+                  <div>
+                    <label for="model_select" class="block text-sm font-medium text-slate-700 mb-1">Model</label>
+                    <select id="model_select"
+                      class="w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border">
+                      <option>Loading...</option>
+                    </select>
+                  </div>
+
+                  <!-- Context Limit -->
+                  <div>
+                    <label for="context_limit" class="block text-sm font-medium text-slate-700 mb-1">Context Limit
+                      (Chars)</label>
+                    <div class="flex items-center gap-2">
+                      <input type="number" name="context_limit" id="context_limit" value="{{ settings.context_limit }}"
+                        min="100" max="{{ max_tokens }}"
+                        class="w-full rounded-lg border-slate-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm px-3 py-2 border">
+                      <span class="text-xs text-slate-500 whitespace-nowrap">Max: {{ max_tokens }}</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Limit the amount of text sent to the AI. Lower values are
+                      faster.</p>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+            <button type="button" id="settings_save"
+              class="inline-flex w-full justify-center rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 sm:ml-3 sm:w-auto transition-colors">Save
+              Changes</button>
+            <button type="button" id="settings_close"
+              class="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-colors">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
+
 </html>

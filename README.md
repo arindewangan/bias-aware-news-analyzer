@@ -13,12 +13,13 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 
 - Environment (`.env`):
   - `NEWS_API_KEY` = NewsAPI key
-  - `LLM_PROVIDER` = `gemini` or `ollama`
+  - `LLM_PROVIDER` = `gemini` or `ollama` (Default provider)
   - `OLLAMA_MODEL` = model name when using Ollama (e.g. `llama3.1:8b`)
   - `DEFAULT_COUNTRY` = default country for headlines (e.g. `us`)
-  - `GOOGLE_API_KEY` = required when `LLM_PROVIDER=gemini`
+  - `GEMINI_API_KEY` = required when `LLM_PROVIDER=gemini`
   - `OLLAMA_BASE_URL` = Ollama server (default `http://localhost:11434`)
   - `CACHE_TTL_SEC` = TTL seconds for NewsAPI cache (default `300`)
+  - `MAX_TOKENS` = Max token limit for context window (default `4000`)
 
 - Run:
 
@@ -31,6 +32,11 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 ## Features
 
 - **Modern UI**: Premium design with Glassmorphism, Tailwind CSS, and 'Outfit' typography.
+- **AI Provider Selection**: Switch between Gemini and Ollama, and configure models directly from the UI.
+- **Token Usage Tracking**: Monitor prompt, completion, and total tokens per request via the Metrics Dashboard.
+- **Strict AI Output**: Prompts are engineered to provide direct, professional, and concise responses without conversational filler.
+- **Article Reordering**: Interacting with an article moves it to the top for better focus.
+- **Configurable Context Limits**: User-adjustable context window size (capped by server limit).
 - Topic fetch via search or category
 - Summarize all articles under a topic
 - Topic bias analysis with score visualization
@@ -88,7 +94,8 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 
 - Counts: summaries (topic/article), bias analyses (topic/article), unbiased summaries, Q&A (global/article).
 - Aggregates: average answer latency (ms), average answer word count.
-- Examples: list of Q&A entries with type, index, question, words, latency.
+- **Token Tracking**: Tracks `prompt_tokens`, `completion_tokens`, and `total_tokens` for every LLM interaction.
+- Examples: list of Q&A entries with type, index, question, words, latency, and token usage.
 - View at `http://127.0.0.1:5000/metrics`. Data persists in `db.sqlite`.
 
 ## Project Structure
