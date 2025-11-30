@@ -29,6 +29,13 @@ A Flask app that fetches news, summarizes articles/topics with an LLM, analyzes 
 
 - Open `http://127.0.0.1:5000/`
 
+## Video Demo
+
+[![Project Demo](https://img.youtube.com/vi/511Ckh9E83w/0.jpg)](https://www.youtube.com/watch?v=511Ckh9E83w)
+
+*Watch the video demonstration to see the app in action.*
+
+
 ## Features
 
 - **Modern UI**: Premium design with Glassmorphism, Tailwind CSS, and 'Outfit' typography.
@@ -144,6 +151,18 @@ flowchart TD
   B --> J5
   B --> J6
 ```
+
+### Data Flow Description
+
+1.  **User Interaction**: The user interacts with the **Browser UI**, initiating requests (search, summarize, analyze) via HTTP POST/GET.
+2.  **Request Handling**: The **Flask App** (`app.py`) receives these requests.
+3.  **External Services**:
+    *   **News Fetching**: The app calls `services/news_fetcher.py` to get articles from NewsAPI.
+    *   **AI Processing**: It uses `services/llm.py` to communicate with Gemini or Ollama for summarization and bias analysis.
+    *   **RAG System**: `services/rag.py` manages embeddings and retrieval from the Chroma Vector DB for Q&A context.
+4.  **Asynchronous Processing**: Long-running tasks like bulk summarization are offloaded to **AsyncJobs** to keep the UI responsive.
+5.  **Real-time Updates**: The app pushes updates (like streaming answers) back to the client using **SSE (Server-Sent Events)**.
+6.  **Persistence**: Usage metrics and logs are saved to the **SQLite** database (`db.sqlite`).
 
 ## Troubleshooting
 
